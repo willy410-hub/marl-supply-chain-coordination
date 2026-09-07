@@ -1,22 +1,62 @@
 # Multi-Echelon Supply Chain Inventory Coordination — A MARL Case Study
 
+A from-scratch implementation of **Multi-Agent Deep Deterministic Policy
+Gradient (MADDPG)** with a **centralized-critic / decentralized-actor**
+(CTDE) architecture, applied to the classic "Beer Game" multi-echelon
+supply chain coordination problem — the environment that produces the
+**bullwhip effect**.
+
+Every learning component (neural networks, backpropagation, Adam,
+MADDPG, replay buffer, OU exploration noise) is implemented in **pure
+NumPy** — zero PyTorch / TensorFlow / RL-framework dependencies. This
+was a deliberate engineering choice (see [Why NumPy, not PyTorch](#5-why-numpy-not-pytorch)
+below), and it means every gradient in this repo is auditable, hand-derived
+math rather than a framework's `.backward()` call.
+
+> **This README documents real results, including where the learned
+> policy currently loses to classical baselines.** That gap, why it
+> exists, and what would close it are described in detail below. A
+> project like this is more convincing when the limitations are
+> precisely characterized than when the numbers are massaged to look
+> better than the evidence supports.
+
+---
+
 ## Results at a Glance
 
 **Training converges — total chain cost drops from >1,000,000 to a
-stable 30,000-80,000 range, and service level climbs from ~0.7 to ~0.97:**
+stable 30,000–80,000 range, and service level climbs from ~0.7 to ~0.97:**
 
-![Training curve](results/training_curve_plot.png)
+![Training curve: cost, bullwhip ratio, service level, and critic/actor loss per episode](results/training_curve_plot.png)
 
 **MADDPG vs. classical OR baselines across three demand regimes, on
-four metrics.** MADDPG cost is 3-4x higher than base-stock, but its
-bullwhip ratio is consistently lower than the (s,S) policy:
+four metrics.** MADDPG's cost is 3–4x higher than base-stock (see
+[Section 3.4](#34-the-honest-gap-and-why-it-exists) for why), but its
+bullwhip ratio is consistently *lower* than the (s,S) policy's:
 
-![Comparison plot](results/comparison_plot.png)
+![Bar chart comparing MADDPG, BaseStock, (s,S), and NaivePassThrough on total cost, bullwhip ratio, service level, and cost fairness](results/comparison_plot.png)
 
 **The bullwhip effect itself, visualized** — orders placed at each
-echelon over one episode (top) and inventory levels (bottom):
+echelon over one episode (top) and the resulting inventory levels
+(bottom). Note the Manufacturer's inventory (green) drifting upward
+across the episode rather than stabilizing — this is the central
+limitation discussed in [Section 3.4](#34-the-honest-gap-and-why-it-exists):
 
-![Bullwhip trajectory plot](results/bullwhip_trajectory_plot.png)
+![Single-episode trajectory showing orders placed per echelon (the bullwhip visualization) and inventory levels per echelon](results/bullwhip_trajectory_plot.png)
+
+---
+
+## From Design to Implementation
+
+This project began as a written design proposal — `docs/original_design_doc.md`
+— submitted as part of a job application process (domain selection,
+technical specification, reward architecture, evaluation plan, and a
+self-assessed feasibility confidence, written *before* a single line
+of code existed). Everything below documents how the actual
+implementation compared to that plan: what held up, what didn't, and
+the real engineering problems that only showed up once the design met
+an actual training loop. The gap between the two is arguably more
+informative than either document alone.
 
 ---
 
