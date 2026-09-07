@@ -1,24 +1,22 @@
 # Multi-Echelon Supply Chain Inventory Coordination — A MARL Case Study
 
-A from-scratch implementation of **Multi-Agent Deep Deterministic Policy
-Gradient (MADDPG)** with a **centralized-critic / decentralized-actor**
-(CTDE) architecture, applied to the classic "Beer Game" multi-echelon
-supply chain coordination problem — the environment that produces the
-**bullwhip effect**.
+## Results at a Glance
 
-Every learning component (neural networks, backpropagation, Adam,
-MADDPG, replay buffer, OU exploration noise) is implemented in **pure
-NumPy** — zero PyTorch / TensorFlow / RL-framework dependencies. This
-was a deliberate engineering choice (see [Why NumPy, not PyTorch](#5-why-numpy-not-pytorch)
-below), and it means every gradient in this repo is auditable, hand-derived
-math rather than a framework's `.backward()` call.
+**Training converges — total chain cost drops from >1,000,000 to a
+stable 30,000-80,000 range, and service level climbs from ~0.7 to ~0.97:**
 
-> **This README documents real results, including where the learned
-> policy currently loses to classical baselines.** That gap, why it
-> exists, and what would close it are described in detail below. A
-> project like this is more convincing when the limitations are
-> precisely characterized than when the numbers are massaged to look
-> better than the evidence supports.
+![Training curve](results/training_curve_plot.png)
+
+**MADDPG vs. classical OR baselines across three demand regimes, on
+four metrics.** MADDPG cost is 3-4x higher than base-stock, but its
+bullwhip ratio is consistently lower than the (s,S) policy:
+
+![Comparison plot](results/comparison_plot.png)
+
+**The bullwhip effect itself, visualized** — orders placed at each
+echelon over one episode (top) and inventory levels (bottom):
+
+![Bullwhip trajectory plot](results/bullwhip_trajectory_plot.png)
 
 ---
 
