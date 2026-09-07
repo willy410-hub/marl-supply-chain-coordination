@@ -1,0 +1,65 @@
+# Default configuration for the Multi-Echelon Supply Chain MARL project.
+# This file documents every hyperparameter used in the reported results
+# (see README.md). It is not auto-loaded by the code (train.py exposes
+# the same values as CLI flags / constructor defaults) -- it exists as
+# a single source of truth for reproducing the reported numbers and for
+# reviewers who want to see all settings in one place without reading
+# through the code.
+
+environment:
+  topology: "linear_4_echelon"          # Retailer -> Distributor -> Manufacturer -> Supplier
+  episode_length: 104                    # ~2 years of weekly periods
+  echelons:
+    retailer:     { holding_cost: 1.0, backlog_penalty: 2.0, ordering_cost: 0.05, capacity: 45, lead_time: 2 }
+    distributor:  { holding_cost: 0.8, backlog_penalty: 1.6, ordering_cost: 0.08, capacity: 45, lead_time: 2 }
+    manufacturer: { holding_cost: 0.6, backlog_penalty: 1.2, ordering_cost: 0.10, capacity: 50, lead_time: 3 }
+    supplier:     { holding_cost: 0.4, backlog_penalty: 0.8, ordering_cost: 0.12, capacity: 55, lead_time: 3 }
+  demand:
+    base_mean: 20.0
+    base_std: 4.0
+    seasonal_amplitude: 6.0
+    seasonal_period: 52
+    shock_prob: 0.03
+    shock_multiplier_range: [2.0, 3.5]
+
+maddpg:
+  hidden_sizes: [64, 64]
+  actor_lr: 0.001
+  critic_lr: 0.001               # lowered from 0.002 after observing TD-target divergence
+  gamma: 0.95
+  tau: 0.01                      # Polyak averaging coefficient for target networks
+  buffer_capacity: 50000
+  batch_size: 128
+  bullwhip_penalty_coef: 0.05    # reward-shaping weight, see agents/maddpg.py:shape_rewards
+  reward_scale: 0.01             # critical fix -- see README "Debugging Journal"
+  grad_clip: 5.0                 # critical fix -- see README "Debugging Journal"
+  policy_delay: 2                # TD3-style delayed actor/target updates
+
+training:
+  episodes: 400
+  warmup_episodes: 10             # steps of pure exploration before any gradient updates
+  updates_per_step: 1
+  demand_mode: "seasonal"
+  seed: 7
+  ou_noise:
+    theta: 0.15
+    sigma_init: 0.3
+    sigma_decay_per_episode: 0.99
+    min_sigma: 0.02
+
+evaluation:
+  n_eval_episodes: 15
+  demand_modes_tested: ["stationary", "seasonal", "shock"]
+  disruption_stress_test:
+    disrupted_echelon: "manufacturer"
+    start_step: 30
+    duration_steps: 20
+    capacity_severity_multiplier: 0.4   # capacity cut to 40% of nominal
+    windowed_cost_range: [30, 80]        # steps used for the windowed-cost metric
+
+baselines:
+  base_stock:
+    target_service_level: 0.95
+  s_S_policy:
+    target_service_level: 0.95
+    reorder_fraction: 0.6                # s = reorder_fraction * S
